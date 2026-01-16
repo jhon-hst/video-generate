@@ -1,0 +1,40 @@
+{
+	"compilerOptions": {
+
+		"moduleDetection": "force",
+
+		"module": "ESNext",
+
+		"target": "ESNext",
+	
+		"resolveJsonModule": true,
+
+		"allowJs": true,
+
+		"esModuleInterop": true,
+
+		"isolatedModules": true,
+
+		"moduleResolution": "node",
+		
+		"experimentalDecorators": true
+	},
+	"exclude": [
+		"node_modules",
+		"dist",
+		"jest.config.js", 
+		"cypress.config.js",
+		"cypress/**/*.ts"  
+	],
+	"overrides": [
+		{
+			"files": ["**/*.cy.ts"],
+			"compilerOptions": {
+				"types": ["cypress"]
+			},
+			"include": [
+				"cypress/**/*.ts"                   
+			],
+		}
+	]
+}

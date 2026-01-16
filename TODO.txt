@@ -1,0 +1,9 @@
+probar los otros modelos de gemini
+animaciones
+sonidos
+sonido de fondo
+Anotar costos actuales
+Pedir a gemini de nuevo el guion para 10 minutos
+    revisar que cree bien la historia en JSON
+Pulir el video si es necesrio
+Anotar costos despues del video
