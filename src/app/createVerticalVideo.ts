@@ -4,47 +4,55 @@ interface VerticalVideoOptions {
   inputPath: string
   outputPath: string
   /**
-   * Factor de zoom para el recorte.
-   * 1.0 = Ajustar al ancho (barras negras grandes).
-   * ~3.15 = Llenar altura (pantalla completa, mucho recorte lateral).
+   * Factor de zoom para el recorte del video principal.
+   * 1.0 = Ajustar al ancho.
    * Recomendado: 1.5 - 1.8
    */
   zoomFactor?: number
+  /**
+   * Intensidad del desenfoque del fondo (Opcional).
+   * Por defecto: 40
+   */
+  blurIntensity?: number
 }
 
 export const createVerticalVideo = ({
   inputPath,
   outputPath,
-  zoomFactor = 1.5
+  zoomFactor = 1.8,
+  blurIntensity = 40 // Nuevo parámetro para controlar qué tan borroso se ve
 }: VerticalVideoOptions): Promise<void> => {
   return new Promise((resolve, reject) => {
-    console.log(`📱 Creando versión vertical (Zoom: ${zoomFactor}x)...`)
+    console.log(`📱 Creando versión vertical con fondo borroso (Zoom: ${zoomFactor}x)...`)
 
-    // Calculamos el ancho escalado basado en el zoom.
-    // El ancho base objetivo es 1080px.
+    // Calculamos el ancho del video frontal (igual que tu lógica original)
     let scaledWidth: number = Math.floor(1080 * zoomFactor)
-
-    // FFmpeg requiere que las dimensiones sean divisibles por 2 para ciertos códecs
     if (scaledWidth % 2 !== 0) scaledWidth += 1
 
     ffmpeg(inputPath)
       .complexFilter([
-        // 1. Escalar: Forzamos el nuevo ancho, la altura (-2) se calcula automáticamente manteniendo el aspect ratio
-        `scale=${scaledWidth}:-2[scaled]`,
+        // --- 1. CAPA DE FONDO (Background) ---
+        // Tomamos la entrada [0:v], la escalamos para cubrir 1080x1920 (increase)
+        // Recortamos los excesos para que sea exactamente 1080x1920
+        // Aplicamos boxblur (intensidad del desenfoque)
+        `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=${blurIntensity}[bg]`,
 
-        // 2. Crop (Recortar): Cortamos el centro para que quede exactamente en 1080px de ancho
-        // w=1080, h=altura_actual (ih), x=(ancho_actual - 1080) / 2, y=0
-        '[scaled]crop=1080:ih:(iw-1080)/2:0[cropped]',
+        // --- 2. CAPA FRONTAL (Foreground) ---
+        // Tu lógica original: Escalar según zoom y recortar a 1080px de ancho.
+        // Nota: Ya no usamos 'pad' aquí, porque lo pondremos encima del fondo.
+        `[0:v]scale=${scaledWidth}:-2,crop=1080:ih:(iw-1080)/2:0[fg]`,
 
-        // 3. Pad (Rellenar): Ponemos el resultado en un canvas de 1080x1920 (9:16)
-        // Centramos verticalmente: (1920 - altura_actual) / 2
-        '[cropped]pad=1080:1920:-1:(oh-ih)/2:color=black[final]'
+        // --- 3. COMPOSICIÓN (Overlay) ---
+        // Ponemos [fg] encima de [bg].
+        // x=0 (centrado horizontalmente ya que ambos son 1080)
+        // y=(main_h-overlay_h)/2 (centrado verticalmente automáticamente)
+        '[bg][fg]overlay=0:(H-h)/2[final]'
       ])
       .outputOptions([
-        '-map [final]', // Usamos el video procesado
+        '-map [final]', // Usamos el resultado del overlay
         '-map 0:a', // Mantenemos el audio original
-        '-c:v libx264', // Re-codificamos video a h264
-        '-c:a copy' // Copiamos el audio sin re-procesar (más rápido)
+        '-c:v libx264',
+        '-c:a copy'
       ])
       .save(outputPath)
       .on('end', () => {
