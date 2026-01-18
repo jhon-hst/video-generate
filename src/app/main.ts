@@ -79,17 +79,17 @@ export async function main (): Promise<void> {
 
   // 2. FASE DE PRODUCCIÓN: Generar todos los assets (Imágenes, Audio, Videos pequeños)
   // Delegamos el trabajo a la función 'generateAllAssets'
-  // const { clipsPaths, videoDurations } = await generateAllAssets({
-  //   storyboardData: storyboard,
-  //   dirs
-  // })
+  const { clipsPaths, videoDurations } = await generateAllAssets({
+    storyboardData: storyboard,
+    dirs
+  })
 
-  // // 3. FASE DE POST-PRODUCCIÓN (Video Largo)
-  // if (clipsPaths.length > 0) {
-  //   await createMainVideoPipeline({ clipsPaths, videoDurations, dirs })
-  // } else {
-  //   console.error('⚠️ ALERTA: No se generaron clips. Saltando creación del video principal.')
-  // }
+  // 3. FASE DE POST-PRODUCCIÓN (Video Largo)
+  if (clipsPaths.length > 0) {
+    await createMainVideoPipeline({ clipsPaths, videoDurations, dirs })
+  } else {
+    console.error('⚠️ ALERTA: No se generaron clips. Saltando creación del video principal.')
+  }
 
   // 4. FASE DE MARKETING (Shorts/Reels)
   // Generamos automáticamente el contenido para redes sociales
