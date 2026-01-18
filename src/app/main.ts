@@ -1,127 +1,254 @@
 import fs from 'fs-extra'
 import path from 'path'
-import getMP3Duration from 'mp3-duration'
 import { fileURLToPath } from 'url'
+import getMP3Duration from 'mp3-duration'
 
+// --- TUS IMPORTACIONES LOCALES ---
+// Asegúrate de que estos archivos existan y exporten las funciones correctamente
 import { createSceneVideo } from './createSceneVideo'
 import { mergeClipsXfade } from './mergeClipsXfade'
 import { audioGenerator } from './audioGenerator'
 import { imageGenerator } from './imageGenerator'
-import { BACKGROUND_VOLUME_AUDIO, TRANSITION_DURATION } from '../constants'
-import { sleep } from '../utils/sleep'
 import { addBackgroundMusic } from './addBackgroundMusic'
 import { createVerticalVideo } from './createVerticalVideo'
 
+// Importamos constantes para mantener el código limpio (Magic Numbers)
+import {
+  BACKGROUND_VOLUME_AUDIO,
+  TRANSITION_DURATION,
+  ZOOM_FACTOR
+} from '../constants'
+import { sleep } from '../utils/sleep'
+
+// ==========================================
+// 1. DEFINICIÓN DE TIPOS (INTERFACES)
+// ==========================================
+
+// Estructura de cada escena en tu storyboard.json
+interface Scene {
+  id: number
+  text: string
+  imagePrompt: string
+}
+
+// Configuración para generar los videos cortos (Shorts/Reels)
+interface ShortConfig {
+  name: string
+  startId: number // ID de la escena donde empieza el corte
+  endId: number // ID de la escena donde termina el corte
+  zoom: number // Zoom específico para este formato
+}
+
+// Estructura para organizar las rutas de las carpetas
+interface Dirs {
+  audio: string
+  images: string
+  temp: string
+  music: string
+  output: string
+  shorts: string
+}
+
+// Lo que devuelve la función generadora de assets
+interface AssetResult {
+  clipsPaths: string[]
+  videoDurations: number[]
+}
+
+// Lo que devuelve el helper de shorts
+interface ShortAssets {
+    clips: string[]
+    durations: number[]
+}
+
+// ==========================================
+// 2. CONFIGURACIÓN E INICIALIZACIÓN
+// ==========================================
+
+// Configuración para ESM (EcmaScript Modules) en Node
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const storyboardPath = new URL('../data/storyboard.json', import.meta.url)
-if (!fs.existsSync(storyboardPath)) {
-  console.error('❌ No encuentro storyboard.json')
-  process.exit(1)
-}
-const storyboard = JSON.parse(fs.readFileSync(storyboardPath, 'utf-8'))
+// 📍 ESTRATEGIA DE CONTENIDO: Configuración de los Shorts
+// Aquí definimos qué fragmentos del video queremos extraer automáticamente.
+const SHORTS_CONFIG: ShortConfig[] = [
+  {
+    name: 'short_intro_cliffhanger',
+    startId: 1,
+    endId: 3,
+    zoom: ZOOM_FACTOR
+  },
+  {
+    name: 'short_king_political_trick',
+    startId: 25,
+    endId: 26,
+    zoom: ZOOM_FACTOR
+  },
+  {
+    name: 'short_science_vs_religion',
+    startId: 70,
+    endId: 73,
+    zoom: ZOOM_FACTOR
+  }
+]
 
-const dirs = {
+// Definición de rutas del sistema
+const dirs: Dirs = {
   audio: path.join(__dirname, '../assets/audio'),
   images: path.join(__dirname, '../assets/images'),
   temp: path.join(__dirname, '../assets/temp_clips'),
-  music: path.join(__dirname, '../assets/backgroundAudio'), // <--- NUEVA RUTA DE MÚSICA
-  output: path.join(__dirname, '../output')
-
+  music: path.join(__dirname, '../assets/backgroundAudio'),
+  output: path.join(__dirname, '../output'),
+  shorts: path.join(__dirname, '../output/shorts')
 }
 
-export async function main () {
-  console.log('🚀 Iniciando Pipeline...')
-  Object.values(dirs).forEach(d => fs.ensureDirSync(d))
+// Carga y validación del Storyboard
+const storyboardPath = new URL('../data/storyboard.json', import.meta.url)
+if (!fs.existsSync(storyboardPath)) {
+  console.error('❌ FATAL: No encuentro storyboard.json en la ruta especificada.')
+  process.exit(1)
+}
+const storyboard: Scene[] = JSON.parse(fs.readFileSync(storyboardPath.pathname, 'utf-8'))
 
-  const clipsPaths = []
-  const videoDurations = []
+// ==========================================
+// 3. FUNCIÓN PRINCIPAL (EL DIRECTOR)
+// ==========================================
 
-  // --- FASE 1: GENERAR ASSETS Y CLIPS ---
-  for (let i = 0; i < storyboard.length; i++) {
-    const scene = storyboard[i]
-    console.log(`\n--- 🎬 Escena ${scene.id}: ${scene.text.substring(0, 20)}... ---`)
+export async function main (): Promise<void> {
+  console.log('🚀 --- INICIANDO PIPELINE DE VIDEO ---')
 
+  // 1. Preparar el terreno: Crear carpetas si no existen
+  Object.values(dirs).forEach((d: string) => fs.ensureDirSync(d))
+
+  // 2. FASE DE PRODUCCIÓN: Generar todos los assets (Imágenes, Audio, Videos pequeños)
+  // Delegamos el trabajo sucio a la función 'generateAllAssets'
+  const { clipsPaths, videoDurations } = await generateAllAssets(storyboard)
+
+  // 3. FASE DE POST-PRODUCCIÓN (Video Largo)
+  if (clipsPaths.length > 0) {
+    await createMainVideoPipeline(clipsPaths, videoDurations)
+  } else {
+    console.error('⚠️ ALERTA: No se generaron clips. Saltando creación del video principal.')
+  }
+
+  // 4. FASE DE MARKETING (Shorts/Reels)
+  // Generamos automáticamente el contenido para redes sociales
+  await createShortsPipeline()
+
+  console.log('\n🏁 --- PROCESO COMPLETADO CON ÉXITO ---')
+}
+
+// ==========================================
+// 4. FUNCIONES WORKERS (LA LÓGICA)
+// ==========================================
+
+/**
+ * 🏭 FASE 1: FÁBRICA DE ASSETS
+ * Itera sobre el guion y asegura que existan el audio, la imagen y el clip de video
+ * para cada escena. Si algo falta, lo crea.
+ */
+async function generateAllAssets (storyboardData: Scene[]): Promise<AssetResult> {
+  const clipsPaths: string[] = []
+  const videoDurations: number[] = []
+
+  console.log('\n--- 🏭 FASE 1: Generando Assets y Clips Individuales ---')
+
+  for (let i = 0; i < storyboardData.length; i++) {
+    const scene = storyboardData[i]
+    console.log(`\n🎬 Procesando Escena ${scene.id}: "${scene.text.substring(0, 30)}..."`)
+
+    // Definimos las rutas esperadas para esta escena
     const audioPath = path.join(dirs.audio, `scene_${scene.id}.mp3`)
     const imagePath = path.join(dirs.images, `scene_${scene.id}.png`)
     const videoClipPath = path.join(dirs.temp, `scene_${scene.id}.mp4`)
 
-    // 1. GENERAR AUDIO (Si no existe)
+    // A. GENERAR AUDIO (Solo si no existe ya)
     if (!fs.existsSync(audioPath)) {
       try {
-        console.log(`🎤 Generando audio para escena ${scene.id}...`)
+        console.log('   🎤 Generando voz IA...')
         await audioGenerator({ text: scene.text, outputPath: audioPath })
-      } catch (error) {
-        console.error(`❌ Error generando audio escena ${scene.id}:`, error.message)
-        // Si falla el audio, no podemos seguir con esta escena
-        continue
+      } catch (error: any) {
+        console.error('   ❌ Error generando audio:', error.message)
+        continue // Si no hay audio, no podemos hacer esta escena, pasamos a la siguiente
       }
     }
 
-    // 2. GENERAR IMAGEN (Si no existe)
+    // B. GENERAR IMAGEN (Solo si no existe ya)
     if (!fs.existsSync(imagePath)) {
       try {
-        // Generamos imagen con Flash y forzamos 16:9
-        console.log(`🎤 Generando imagen para escena ${scene.id}...`)
+        console.log('   🎨 Generando imagen con Gemini...')
         await imageGenerator({
           rawPrompt: scene.imagePrompt,
           outputPath: imagePath,
           options: { aspectRatio: '16:9', model: 'gemini-2.5-flash-image' }
         })
 
-        console.log('zzz Esperando 5 segundos para enfriar la API de Gemini...')
-        await sleep(5000)
-      } catch (error) {
-        console.error(`❌ Error generando imagen escena ${scene.id}:`, error.message)
+        console.log('   zzz Enfriando API (Wait 5s)...')
+        await sleep(5000) // Pausa para no saturar la API
+      } catch (error: any) {
+        console.error('   ❌ Error generando imagen:', error.message)
       }
     }
 
-    // 3. CALCULAR DURACIÓN
-    // Verificamos que el audio exista antes de medirlo
+    // C. RENDERIZAR CLIP DE VIDEO (Imagen + Audio)
+    // Solo procedemos si tenemos el audio (la imagen es opcional, aunque ideal)
     if (fs.existsSync(audioPath)) {
-      const audioDuration = await getMP3Duration(audioPath)
+      // Calculamos cuánto debe durar el video
+      const audioDuration: number = await getMP3Duration(audioPath)
+      const totalDuration = audioDuration + TRANSITION_DURATION
 
-      // El video dura Audio + Transición
-      const videoDuration = audioDuration + TRANSITION_DURATION
-      videoDurations.push(videoDuration)
+      videoDurations.push(totalDuration)
+      console.log(`   ⏱️ Audio: ${audioDuration.toFixed(2)}s | Video Final: ${totalDuration.toFixed(2)}s`)
 
-      console.log(`⏱️ Audio: ${audioDuration.toFixed(2)}s | Video Clip: ${videoDuration.toFixed(2)}s`)
-
-      // 4. RENDERIZAR VIDEO CLIP
-      // Validamos que la imagen exista, si no, usamos un placeholder o saltamos (aquí asumo que existe)
       if (fs.existsSync(imagePath)) {
-        await createSceneVideo({
-          imagePath,
-          audioPath,
-          duration: videoDuration,
-          outputPath: videoClipPath
-        })
+        // Solo renderizamos si el archivo de video NO existe (para ahorrar tiempo en re-runs)
+        if (!fs.existsSync(videoClipPath)) {
+          await createSceneVideo({
+            imagePath,
+            audioPath,
+            duration: totalDuration,
+            outputPath: videoClipPath
+          })
+        } else {
+          console.log('   ✅ Clip de video ya existe, usándolo.')
+        }
         clipsPaths.push(videoClipPath)
       } else {
-        console.error('⚠️ Imagen no encontrada, saltando generación de video para esta escena.')
+        console.error('   ⚠️ Falta la imagen. Saltando generación de video para esta escena.')
       }
-    } else {
-      console.error('⚠️ Audio no encontrado, saltando escena.')
     }
   }
 
-  // // 5 UNIR CLIPS CON TRANSICIONES
-  console.log('\n--- FASE 5 🎞️ Uniendo clips con transiciones... ---')
+  return { clipsPaths, videoDurations }
+}
 
-  // Creamos un nombre temporal para el video mudo (solo voz)
+/**
+ * 🎞️ FASE PRINCIPAL: MONTAJE DEL VIDEO LARGO
+ * 1. Une todos los clips.
+ * 2. Añade música de fondo.
+ * 3. Crea una versión vertical completa.
+ */
+async function createMainVideoPipeline (clipsPaths: string[], videoDurations: number[]): Promise<void> {
+  console.log('\n--- 🎞️ FASE 2: Montaje del Video Principal (Youtube) ---')
+
   const rawVideoPath = path.join(dirs.output, 'video_raw.mp4')
   const finalVideoPath = path.join(dirs.output, 'final_video.mp4')
+  const verticalVideoPath = path.join(dirs.output, 'final_video_9_16.mp4')
+  const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
+
+  // 1. UNIR CLIPS CON TRANSICIONES
+  console.log('   🔄 Uniendo clips...')
   await mergeClipsXfade({
     clipsPaths,
     finalOutput: rawVideoPath,
     durations: videoDurations
   })
 
-  // --- FASE 6: AÑADIR MÚSICA DE FONDO ---
-  console.log('\n--- FASE 6 🎵 Procesando Audio Final... ---')
-  const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
+  console.log('   Descanzo para el sistema (20s)...')
+  await sleep(20000)
 
+  // 2. MEZCLA DE AUDIO (Música + Voz)
+  console.log('   🎵 Mezclando música de fondo...')
   if (fs.existsSync(backgroundMusicFile)) {
     try {
       await addBackgroundMusic({
@@ -130,36 +257,125 @@ export async function main () {
         outputPath: finalVideoPath,
         volume: BACKGROUND_VOLUME_AUDIO
       })
-
-      // Opcional: Borrar el video intermedio
-      // fs.unlinkSync(rawVideoPath)
-      console.log(`✨ Video completado: ${finalVideoPath}`)
-    } catch (error) {
-      console.error('Error poniendo música, entregando video sin música', error)
+      console.log(`   ✅ Video Horizontal completado: ${finalVideoPath}`)
+    } catch (e) {
+      console.error('   ❌ Error añadiendo música, usando video sin música.', e)
+      fs.copyFileSync(rawVideoPath, finalVideoPath)
     }
   } else {
-    console.warn('⚠️ No se encontró archivo de música de fondo, se omite este paso.')
-    // Si no hay música, renombramos el raw a final para tener un output consistente
+    console.warn('   ⚠️ No hay música de fondo. Copiando video raw.')
     fs.copyFileSync(rawVideoPath, finalVideoPath)
   }
 
-  // --- FASE 7: VIDEO VERTICAL ---
-  console.log('\n--- FASE 7 📱 Generando versión 9:16 (TikTok/Reels)... ---')
-  const verticalVideoPath = path.join(dirs.output, 'final_video_9_16.mp4')
+  console.log('   Descanzo para el sistema (20s)...')
+  await sleep(20000)
+
+  // 3. VERSIÓN VERTICAL AUTOMÁTICA
+  console.log('   📱 Creando versión vertical completa...')
   if (fs.existsSync(finalVideoPath)) {
-    try {
-      await createVerticalVideo({
-        inputPath: finalVideoPath,
-        outputPath: verticalVideoPath,
-        zoomFactor: 1.8
-      })
-      console.log(`✨ Video Vertical listo en: ${verticalVideoPath}`)
-    } catch (error) {
-      console.error('⚠️ Falló la generación del video vertical.', error)
+    await createVerticalVideo({
+      inputPath: finalVideoPath,
+      outputPath: verticalVideoPath,
+      zoomFactor: ZOOM_FACTOR
+    })
+  }
+
+  if (fs.existsSync(rawVideoPath)) fs.unlinkSync(rawVideoPath)
+}
+
+/**
+ * ✂️ FASE SHORTS: GENERADOR DE CLIPS VIRALES
+ * Recorre la configuración SHORTS_CONFIG y crea videos independientes
+ * reutilizando los materiales existentes (sin gastar más API).
+ */
+async function createShortsPipeline (): Promise<void> {
+  console.log('   Descanzo para el sistema (20s)...')
+  await sleep(20000)
+
+  console.log('\n--- ✂️ FASE 3: Generando Shorts (Estrategia Cliffhanger) ---')
+  const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
+
+  for (const shortConfig of SHORTS_CONFIG) {
+    console.log(`\n   🎬 Creando Short: "${shortConfig.name}" (Escenas ${shortConfig.startId}-${shortConfig.endId})`)
+
+    // Paso 1: Recolectar solo los clips que pertenecen a este short
+    const { clips, durations } = await getClipsForShort(shortConfig.startId, shortConfig.endId)
+
+    if (clips.length === 0) {
+      console.warn('   ⚠️ No se encontraron clips para este short. Saltando.')
+      continue
     }
-  } else {
-    console.error('⚠️ No existe final_video.mp4, no se puede crear la versión vertical.')
+
+    // Rutas temporales y finales para este short
+    const rawPath = path.join(dirs.shorts, `${shortConfig.name}_raw.mp4`)
+    const musicPath = path.join(dirs.shorts, `${shortConfig.name}_music.mp4`)
+    const finalPath = path.join(dirs.shorts, `${shortConfig.name}_final_9_16.mp4`)
+
+    try {
+      // Paso 2: Unir los fragmentos
+      await mergeClipsXfade({
+        clipsPaths: clips,
+        finalOutput: rawPath,
+        durations
+      })
+
+      // Paso 3: Ponerles música
+      if (fs.existsSync(backgroundMusicFile)) {
+        await addBackgroundMusic({
+          videoPath: rawPath,
+          musicPath: backgroundMusicFile,
+          outputPath: musicPath,
+          volume: BACKGROUND_VOLUME_AUDIO
+        })
+      } else {
+        fs.copyFileSync(rawPath, musicPath)
+      }
+
+      // Paso 4: Convertir a Vertical (TikTok Ready)
+      await createVerticalVideo({
+        inputPath: musicPath,
+        outputPath: finalPath,
+        zoomFactor: shortConfig.zoom
+      })
+
+      console.log(`   ✨ Short listo para subir: ${finalPath}`)
+
+      // Limpieza (Opcional): Borrar los archivos intermedios para ahorrar espacio
+      if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath)
+      if (fs.existsSync(musicPath)) fs.unlinkSync(musicPath)
+    } catch (error) {
+      console.error(`   ❌ Falló la creación del short ${shortConfig.name}:`, error)
+    }
   }
 }
 
-main()
+/**
+ * 🔍 HELPER: BUSCADOR DE ARCHIVOS
+ * Busca en la carpeta temporal los archivos mp4 y mp3 correspondientes
+ * a un rango de IDs.
+ */
+async function getClipsForShort (startId: number, endId: number): Promise<ShortAssets> {
+  const clips: string[] = []
+  const durations: number[] = []
+
+  for (let id = startId; id <= endId; id++) {
+    const clipPath = path.join(dirs.temp, `scene_${id}.mp4`)
+    const audioPath = path.join(dirs.audio, `scene_${id}.mp3`)
+
+    // Verificamos que ambos existan antes de añadirlos
+    if (fs.existsSync(clipPath) && fs.existsSync(audioPath)) {
+      clips.push(clipPath)
+
+      // Recalculamos duración por si acaso
+      const d: number = await getMP3Duration(audioPath)
+      durations.push(d + TRANSITION_DURATION)
+    }
+  }
+  return { clips, durations }
+}
+
+// Ejecutar el script y capturar cualquier error fatal global
+main().catch((err) => {
+  console.error('❌ Error Fatal en el proceso:', err)
+  process.exit(1)
+})
