@@ -9,46 +9,12 @@ import { createVerticalVideo } from './createVerticalVideo'
 
 import {
   BACKGROUND_VOLUME_AUDIO,
-  TRANSITION_DURATION,
-  ZOOM_FACTOR
+  TRANSITION_DURATION
 } from '../constants'
 import { sleep } from '../utils/sleep'
 import { createThumbnailShortYoutubeVideo } from './createThumbnailShortYoutubeVideo'
 import { concatVideos } from './concatVideos'
-import { Dirs, ShortAssets } from './main'
-
-// Configuración para generar los videos cortos (Shorts/Reels)
-interface ShortConfig {
-  name: string
-  startId: number // ID de la escena donde empieza el corte
-  endId: number // ID de la escena donde termina el corte
-  zoom: number // Zoom específico para este formato
-  thumbnailYoutubeShort: string // Ruta de la miniatura para Youtube Shorts
-}
-
-const SHORTS_CONFIG: ShortConfig[] = [
-  {
-    name: 'short_intro_cliffhanger',
-    startId: 1,
-    endId: 3,
-    zoom: ZOOM_FACTOR,
-    thumbnailYoutubeShort: 'thumbnail_1.png'
-  },
-  {
-    name: 'short_king_political_trick',
-    startId: 25,
-    endId: 26,
-    zoom: ZOOM_FACTOR,
-    thumbnailYoutubeShort: 'thumbnail_1.png'
-  },
-  {
-    name: 'short_science_vs_religion',
-    startId: 70,
-    endId: 73,
-    zoom: ZOOM_FACTOR,
-    thumbnailYoutubeShort: 'thumbnail_1.png'
-  }
-]
+import { Dirs, ShortAssets, ShortConfig } from './main'
 
 /**
  * ✂️ FASE SHORTS: GENERADOR DE CLIPS VIRALES
@@ -56,17 +22,17 @@ const SHORTS_CONFIG: ShortConfig[] = [
  * reutilizando los materiales existentes (sin gastar más API).
  */
 
-export async function createShortsPipeline ({ dirs }: {dirs: Dirs}): Promise<void> {
+export async function createShortsPipeline ({ dirs, shorts }: {dirs: Dirs, shorts: ShortConfig[]}): Promise<void> {
   console.log('\n--- ✂️ FASE 3: Generando Shorts Multi-Plataforma ---')
   const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
 
   const platforms = [
-    { id: 'youtube', endingFile: 'end_short_youtube.mp4' },
-    { id: 'tiktok', endingFile: 'end_tiktok.mp4' }
+    { id: 'youtube', endingFile: 'end_short_youtube.mp4' }
+    // { id: 'general', endingFile: 'end_tiktok.mp4' }
     // { id: 'reel', endingFile: 'end_reel.mp4' }
   ]
 
-  for (const shortConfig of SHORTS_CONFIG) {
+  for (const shortConfig of shorts) {
     console.log(`\n🎬 Procesando Short: "${shortConfig.name}"`)
 
     // 1. Obtener clips

@@ -25,6 +25,15 @@ export interface Dirs {
   youtubeThumbnailShorts: string
 }
 
+// Configuración para generar los videos cortos (Shorts/Reels)
+export interface ShortConfig {
+  name: string
+  startId: number // ID de la escena donde empieza el corte
+  endId: number // ID de la escena donde termina el corte
+  zoom: number // Zoom específico para este formato
+  thumbnailYoutubeShort: string // Ruta de la miniatura para Youtube Shorts
+}
+
 // Lo que devuelve el helper de shorts
 export interface ShortAssets {
     clips: string[]
@@ -54,6 +63,14 @@ if (!fs.existsSync(storyboardPath)) {
 }
 const storyboard: Scene[] = JSON.parse(fs.readFileSync(storyboardPath.pathname, 'utf-8'))
 
+// Carga y validación del Storyboard to shorts
+const shortsPath = new URL('../data/shorts.json', import.meta.url)
+if (!fs.existsSync(shortsPath)) {
+  console.error('❌ FATAL: No encuentro shorts.json en la ruta especificada.')
+  process.exit(1)
+}
+const shorts: ShortConfig[] = JSON.parse(fs.readFileSync(shortsPath.pathname, 'utf-8'))
+
 export async function main (): Promise<void> {
   console.log('🚀 --- INICIANDO PIPELINE DE VIDEO ---')
 
@@ -76,7 +93,7 @@ export async function main (): Promise<void> {
 
   // 4. FASE DE MARKETING (Shorts/Reels)
   // Generamos automáticamente el contenido para redes sociales
-  await createShortsPipeline({ dirs })
+  await createShortsPipeline({ dirs, shorts })
 
   console.log('\n🏁 --- PROCESO COMPLETADO CON ÉXITO ---')
 }

@@ -4,7 +4,6 @@ agregar subtitulos al video
 crear el .srt
 
 crear ending short
-crear ending tiktok
 
 video 16:9 completo 
     Youtube ✅
@@ -12,7 +11,10 @@ Video 9:16 completo ✅
     Facebook ✅
     Instagram ✅
 Videos 9:16
-    tiktok
-    youtube shorts
+    tiktok ✅
+    youtube shorts ✅
 
-Crear el paso a paso para crear videos
+quitar el fondo negro a los videos verticales ✅
+mover a un JSON la lista de shorts ✅
+
+Crear el paso a paso para crear videos 
