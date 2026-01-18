@@ -10,6 +10,7 @@ import { imageGenerator } from './imageGenerator'
 import { BACKGROUND_VOLUME_AUDIO, TRANSITION_DURATION } from '../constants'
 import { sleep } from '../utils/sleep'
 import { addBackgroundMusic } from './addBackgroundMusic'
+import { createVerticalVideo } from './createVerticalVideo'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -106,7 +107,7 @@ export async function main () {
   }
 
   // // 5 UNIR CLIPS CON TRANSICIONES
-  console.log('\n--- 🎞️ Uniendo clips con transiciones... ---')
+  console.log('\n--- FASE 5 🎞️ Uniendo clips con transiciones... ---')
 
   // Creamos un nombre temporal para el video mudo (solo voz)
   const rawVideoPath = path.join(dirs.output, 'video_raw.mp4')
@@ -118,7 +119,7 @@ export async function main () {
   })
 
   // --- FASE 6: AÑADIR MÚSICA DE FONDO ---
-  console.log('\n--- 🎵 Procesando Audio Final... ---')
+  console.log('\n--- FASE 6 🎵 Procesando Audio Final... ---')
   const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
 
   if (fs.existsSync(backgroundMusicFile)) {
@@ -140,6 +141,24 @@ export async function main () {
     console.warn('⚠️ No se encontró archivo de música de fondo, se omite este paso.')
     // Si no hay música, renombramos el raw a final para tener un output consistente
     fs.copyFileSync(rawVideoPath, finalVideoPath)
+  }
+
+  // --- FASE 7: VIDEO VERTICAL ---
+  console.log('\n--- FASE 7 📱 Generando versión 9:16 (TikTok/Reels)... ---')
+  const verticalVideoPath = path.join(dirs.output, 'final_video_9_16.mp4')
+  if (fs.existsSync(finalVideoPath)) {
+    try {
+      await createVerticalVideo({
+        inputPath: finalVideoPath,
+        outputPath: verticalVideoPath,
+        zoomFactor: 1.8
+      })
+      console.log(`✨ Video Vertical listo en: ${verticalVideoPath}`)
+    } catch (error) {
+      console.error('⚠️ Falló la generación del video vertical.', error)
+    }
+  } else {
+    console.error('⚠️ No existe final_video.mp4, no se puede crear la versión vertical.')
   }
 }
 
