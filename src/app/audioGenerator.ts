@@ -7,13 +7,6 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
 console.log(process.env.ELEVENLABS_API_KEY)
 const VOICE_ID = 'qRUgOhnxGASxirG4fKjv'
-// t9LRTh3y1ioN00e9wsNh
-// E3MrNtjUaYrNQEr9YqXs
-// 8mBRP99B2Ng2QwsJMFQl
-// qRUgOhnxGASxirG4fKjv
-// K3TeN3ZVK8WnOeJ0NYqZ => misterio
-
-// CONFIGURACIÓN DE VIDEO
 
 const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY

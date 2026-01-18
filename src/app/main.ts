@@ -7,8 +7,9 @@ import { createSceneVideo } from './createSceneVideo'
 import { mergeClipsXfade } from './mergeClipsXfade'
 import { audioGenerator } from './audioGenerator'
 import { imageGenerator } from './imageGenerator'
-import { TRANSITION_DURATION } from '../constants'
+import { BACKGROUND_VOLUME_AUDIO, TRANSITION_DURATION } from '../constants'
 import { sleep } from '../utils/sleep'
+import { addBackgroundMusic } from './addBackgroundMusic'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -24,7 +25,9 @@ const dirs = {
   audio: path.join(__dirname, '../assets/audio'),
   images: path.join(__dirname, '../assets/images'),
   temp: path.join(__dirname, '../assets/temp_clips'),
+  music: path.join(__dirname, '../assets/backgroundAudio'), // <--- NUEVA RUTA DE MÚSICA
   output: path.join(__dirname, '../output')
+
 }
 
 export async function main () {
@@ -102,13 +105,42 @@ export async function main () {
     }
   }
 
-  // 5 UNIR CLIPS CON TRANSICIONES
+  // // 5 UNIR CLIPS CON TRANSICIONES
   console.log('\n--- 🎞️ Uniendo clips con transiciones... ---')
+
+  // Creamos un nombre temporal para el video mudo (solo voz)
+  const rawVideoPath = path.join(dirs.output, 'video_raw.mp4')
+  const finalVideoPath = path.join(dirs.output, 'final_video.mp4')
   await mergeClipsXfade({
     clipsPaths,
-    finalOutput: path.join(dirs.output, 'final_video.mp4'),
+    finalOutput: rawVideoPath,
     durations: videoDurations
   })
+
+  // --- FASE 6: AÑADIR MÚSICA DE FONDO ---
+  console.log('\n--- 🎵 Procesando Audio Final... ---')
+  const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
+
+  if (fs.existsSync(backgroundMusicFile)) {
+    try {
+      await addBackgroundMusic({
+        videoPath: rawVideoPath,
+        musicPath: backgroundMusicFile,
+        outputPath: finalVideoPath,
+        volume: BACKGROUND_VOLUME_AUDIO
+      })
+
+      // Opcional: Borrar el video intermedio
+      // fs.unlinkSync(rawVideoPath)
+      console.log(`✨ Video completado: ${finalVideoPath}`)
+    } catch (error) {
+      console.error('Error poniendo música, entregando video sin música', error)
+    }
+  } else {
+    console.warn('⚠️ No se encontró archivo de música de fondo, se omite este paso.')
+    // Si no hay música, renombramos el raw a final para tener un output consistente
+    fs.copyFileSync(rawVideoPath, finalVideoPath)
+  }
 }
 
 main()

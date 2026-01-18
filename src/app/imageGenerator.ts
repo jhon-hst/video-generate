@@ -139,12 +139,6 @@ export async function imageGenerator ({ rawPrompt, outputPath, options = {} }: i
     const candidate = response.candidates?.[0]
     const part = candidate?.content?.parts?.[0]
 
-    console.log('🖼️ -------------candidates--------------------')
-    console.log(response.candidates)
-    console.log('🖼️ ---------------------------------')
-    console.log('🖼️ --------------candidate?.content?.parts-------------------')
-    console.log(candidate?.content?.parts)
-    console.log('🖼️ ---------------------------------')
     if (part && part.inlineData) {
       const buffer = Buffer.from(part.inlineData.data, 'base64')
       await fs.ensureDir(path.dirname(outputPath))
