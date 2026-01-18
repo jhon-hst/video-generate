@@ -19,6 +19,8 @@ import {
   ZOOM_FACTOR
 } from '../constants'
 import { sleep } from '../utils/sleep'
+import { createThumbnailShortYoutubeVideo } from './createThumbnailShortYoutubeVideo'
+import { concatVideos } from './concatVideos'
 
 // ==========================================
 // 1. DEFINICIÓN DE TIPOS (INTERFACES)
@@ -37,6 +39,7 @@ interface ShortConfig {
   startId: number // ID de la escena donde empieza el corte
   endId: number // ID de la escena donde termina el corte
   zoom: number // Zoom específico para este formato
+  thumbnailYoutubeShort: string // Ruta de la miniatura para Youtube Shorts
 }
 
 // Estructura para organizar las rutas de las carpetas
@@ -47,6 +50,8 @@ interface Dirs {
   music: string
   output: string
   shorts: string
+  endShorts: string
+  youtubeThumbnailShorts: string
 }
 
 // Lo que devuelve la función generadora de assets
@@ -76,19 +81,22 @@ const SHORTS_CONFIG: ShortConfig[] = [
     name: 'short_intro_cliffhanger',
     startId: 1,
     endId: 3,
-    zoom: ZOOM_FACTOR
+    zoom: ZOOM_FACTOR,
+    thumbnailYoutubeShort: 'thumbnail_1.png'
   },
   {
     name: 'short_king_political_trick',
     startId: 25,
     endId: 26,
-    zoom: ZOOM_FACTOR
+    zoom: ZOOM_FACTOR,
+    thumbnailYoutubeShort: 'thumbnail_1.png'
   },
   {
     name: 'short_science_vs_religion',
     startId: 70,
     endId: 73,
-    zoom: ZOOM_FACTOR
+    zoom: ZOOM_FACTOR,
+    thumbnailYoutubeShort: 'thumbnail_1.png'
   }
 ]
 
@@ -99,7 +107,9 @@ const dirs: Dirs = {
   temp: path.join(__dirname, '../assets/temp_clips'),
   music: path.join(__dirname, '../assets/backgroundAudio'),
   output: path.join(__dirname, '../output'),
-  shorts: path.join(__dirname, '../output/shorts')
+  shorts: path.join(__dirname, '../output/shorts'),
+  endShorts: path.join(__dirname, '../assets/endShorts'),
+  youtubeThumbnailShorts: path.join(__dirname, '../assets/youtubeThumbnailShorts')
 }
 
 // Carga y validación del Storyboard
@@ -288,63 +298,141 @@ async function createMainVideoPipeline (clipsPaths: string[], videoDurations: nu
  * Recorre la configuración SHORTS_CONFIG y crea videos independientes
  * reutilizando los materiales existentes (sin gastar más API).
  */
-async function createShortsPipeline (): Promise<void> {
-  console.log('   Descanzo para el sistema (20s)...')
-  await sleep(20000)
+// --- HELPER: BORRADO SEGURO (Mantenlo, es buena práctica) ---
+function safeDelete (filePath: string) {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath)
+    }
+  } catch (e) {
+    /* Ignoramos si no se puede borrar */
+    console.log('\n--- Error no-fatal, in safeDelete ---: ', e)
+  }
+}
 
-  console.log('\n--- ✂️ FASE 3: Generando Shorts (Estrategia Cliffhanger) ---')
+async function createShortsPipeline (): Promise<void> {
+  console.log('\n--- ✂️ FASE 3: Generando Shorts Multi-Plataforma ---')
   const backgroundMusicFile = path.join(dirs.music, 'background_chill.mpeg')
 
+  const platforms = [
+    { id: 'youtube', endingFile: 'end_short_youtube.mp4' },
+    { id: 'tiktok', endingFile: 'end_tiktok.mp4' }
+    // { id: 'reel', endingFile: 'end_reel.mp4' }
+  ]
+
   for (const shortConfig of SHORTS_CONFIG) {
-    console.log(`\n   🎬 Creando Short: "${shortConfig.name}" (Escenas ${shortConfig.startId}-${shortConfig.endId})`)
+    console.log(`\n🎬 Procesando Short: "${shortConfig.name}"`)
 
-    // Paso 1: Recolectar solo los clips que pertenecen a este short
+    // 1. Obtener clips
     const { clips, durations } = await getClipsForShort(shortConfig.startId, shortConfig.endId)
+    if (clips.length === 0) continue
 
-    if (clips.length === 0) {
-      console.warn('   ⚠️ No se encontraron clips para este short. Saltando.')
-      continue
-    }
-
-    // Rutas temporales y finales para este short
-    const rawPath = path.join(dirs.shorts, `${shortConfig.name}_raw.mp4`)
-    const musicPath = path.join(dirs.shorts, `${shortConfig.name}_music.mp4`)
-    const finalPath = path.join(dirs.shorts, `${shortConfig.name}_final_9_16.mp4`)
+    const baseRawPath = path.join(dirs.shorts, `${shortConfig.name}_base_raw.mp4`)
+    const baseMusicPath = path.join(dirs.shorts, `${shortConfig.name}_base_music.mp4`)
+    const baseVerticalPath = path.join(dirs.shorts, `${shortConfig.name}_base_9_16.mp4`)
 
     try {
-      // Paso 2: Unir los fragmentos
-      await mergeClipsXfade({
-        clipsPaths: clips,
-        finalOutput: rawPath,
-        durations
-      })
+      // --- A. MERGE CLIPS ---
+      safeDelete(baseRawPath)
+      await mergeClipsXfade({ clipsPaths: clips, finalOutput: baseRawPath, durations })
 
-      // Paso 3: Ponerles música
+      // --- B. AÑADIR MÚSICA ---
+      safeDelete(baseMusicPath)
       if (fs.existsSync(backgroundMusicFile)) {
         await addBackgroundMusic({
-          videoPath: rawPath,
+          videoPath: baseRawPath,
           musicPath: backgroundMusicFile,
-          outputPath: musicPath,
+          outputPath: baseMusicPath,
           volume: BACKGROUND_VOLUME_AUDIO
         })
       } else {
-        fs.copyFileSync(rawPath, musicPath)
+        fs.copyFileSync(baseRawPath, baseMusicPath)
       }
 
-      // Paso 4: Convertir a Vertical (TikTok Ready)
-      await createVerticalVideo({
-        inputPath: musicPath,
-        outputPath: finalPath,
-        zoomFactor: shortConfig.zoom
-      })
+      // --- C. CONVERTIR A VERTICAL ---
+      // Pequeña pausa técnica para asegurar que el archivo de música se cerró bien
+      await sleep(500)
 
-      console.log(`   ✨ Short listo para subir: ${finalPath}`)
+      safeDelete(baseVerticalPath)
+      if (fs.existsSync(baseMusicPath)) {
+        await createVerticalVideo({
+          inputPath: baseMusicPath,
+          outputPath: baseVerticalPath,
+          zoomFactor: shortConfig.zoom
+        })
+      } else {
+        throw new Error(`Base musical no encontrada: ${baseMusicPath}`)
+      }
 
-      // Limpieza (Opcional): Borrar los archivos intermedios para ahorrar espacio
-      if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath)
-      if (fs.existsSync(musicPath)) fs.unlinkSync(musicPath)
+      console.log('   ✅ Base generada. Creando versiones...')
+
+      // --- D. GENERAR VERSIONES POR PLATAFORMA ---
+      for (const platform of platforms) {
+        const endingPath = path.join(dirs.endShorts, platform.endingFile)
+        const finalOutputPath = path.join(dirs.shorts, `${shortConfig.name}_${platform.id}.mp4`)
+
+        safeDelete(finalOutputPath)
+
+        const videosToConcat: string[] = []
+        videosToConcat.push(baseVerticalPath)
+
+        // Agregar Ending
+        if (fs.existsSync(endingPath)) {
+          videosToConcat.push(endingPath)
+        } else {
+          console.warn(`      ⚠️ Sin ending para ${platform.id}`)
+        }
+
+        // Caso Especial: YouTube Thumbnail
+        let tempThumbVideoPath = ''
+        if (platform.id === 'youtube') {
+          const thumbName = shortConfig.thumbnailYoutubeShort
+          const thumbImagePath = path.join(dirs.youtubeThumbnailShorts, thumbName)
+
+          if (fs.existsSync(thumbImagePath)) {
+            console.log('      📸 Generando miniatura...')
+            tempThumbVideoPath = path.join(dirs.shorts, `temp_thumb_${shortConfig.name}.mp4`)
+            safeDelete(tempThumbVideoPath)
+
+            await createThumbnailShortYoutubeVideo({
+              imagePath: thumbImagePath,
+              outputPath: tempThumbVideoPath,
+              duration: 0.25,
+              musicPath: backgroundMusicFile // Usamos la música real
+            })
+
+            // Espera breve para asegurar escritura del thumbnail
+            await sleep(500)
+            videosToConcat.push(tempThumbVideoPath)
+          }
+        }
+
+        // Concatenar Final
+        if (videosToConcat.length > 1) {
+          console.log(`      🔨 Ensamblando ${platform.id}...`)
+          await concatVideos({
+            inputPaths: videosToConcat,
+            outputPath: finalOutputPath
+          })
+          console.log(`      ✨ Listo: ${shortConfig.name}_${platform.id}.mp4`)
+        } else {
+          fs.copyFileSync(baseVerticalPath, finalOutputPath)
+        }
+
+        // Limpieza del thumbnail temporal
+        if (tempThumbVideoPath) {
+          await sleep(200)
+          safeDelete(tempThumbVideoPath)
+        }
+      }
+
+      // --- LIMPIEZA DE BASES ---
+      // Ahora sí podemos borrar tranquilos
+      safeDelete(baseRawPath)
+      safeDelete(baseMusicPath)
+      safeDelete(baseVerticalPath)
     } catch (error) {
-      console.error(`   ❌ Falló la creación del short ${shortConfig.name}:`, error)
+      console.error(`❌ Error en short ${shortConfig.name}:`, error)
     }
   }
 }
@@ -373,9 +461,3 @@ async function getClipsForShort (startId: number, endId: number): Promise<ShortA
   }
   return { clips, durations }
 }
-
-// Ejecutar el script y capturar cualquier error fatal global
-main().catch((err) => {
-  console.error('❌ Error Fatal en el proceso:', err)
-  process.exit(1)
-})

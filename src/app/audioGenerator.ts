@@ -5,7 +5,6 @@ config()
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
-console.log(process.env.ELEVENLABS_API_KEY)
 const VOICE_ID = 'qRUgOhnxGASxirG4fKjv'
 
 const elevenlabs = new ElevenLabsClient({
