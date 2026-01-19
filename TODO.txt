@@ -16,7 +16,9 @@ Videos 9:16
 quitar el fondo negro a los videos verticales ✅
 mover a un JSON la lista de shorts ✅
 
+quitar la musica de fondo, no se siente bien o analizar. En los shorts se quita no se siente bien 
 Crear el paso a paso para crear videos 
+
 
 WISH
 agregar subtitulos al video

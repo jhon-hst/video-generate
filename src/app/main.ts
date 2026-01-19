@@ -91,7 +91,7 @@ export async function main (): Promise<void> {
     console.error('⚠️ ALERTA: No se generaron clips. Saltando creación del video principal.')
   }
 
-  // 4. FASE DE MARKETING (Shorts/Reels)
+  // 4. FASE DE MARKETING (Shorts/Reels) se requiere el archivo shorts.json y los rangos definidos allí por ids
   // Generamos automáticamente el contenido para redes sociales
   await createShortsPipeline({ dirs, shorts })
 

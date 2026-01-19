@@ -53,17 +53,19 @@ export async function createShortsPipeline ({ dirs, shorts }: {dirs: Dirs, short
       await mergeClipsXfade({ clipsPaths: clips, finalOutput: baseRawPath, durations })
 
       // --- B. AÑADIR MÚSICA ---
-      safeDelete(baseMusicPath)
-      if (fs.existsSync(backgroundMusicFile)) {
-        await addBackgroundMusic({
-          videoPath: baseRawPath,
-          musicPath: backgroundMusicFile,
-          outputPath: baseMusicPath,
-          volume: BACKGROUND_VOLUME_AUDIO
-        })
-      } else {
-        fs.copyFileSync(baseRawPath, baseMusicPath)
-      }
+      // safeDelete(baseMusicPath)
+      // if (fs.existsSync(backgroundMusicFile)) {
+      //   await addBackgroundMusic({
+      //     videoPath: baseRawPath,
+      //     musicPath: backgroundMusicFile,
+      //     outputPath: baseMusicPath,
+      //     volume: BACKGROUND_VOLUME_AUDIO
+      //   })
+      // } else {
+      //   fs.copyFileSync(baseRawPath, baseMusicPath)
+      // }
+      // Por simplicidad, si no hay música solo copiamos el raw, la musica no se siente bien
+      fs.copyFileSync(baseRawPath, baseMusicPath)
 
       // --- C. CONVERTIR A VERTICAL ---
       // Pequeña pausa técnica para asegurar que el archivo de música se cerró bien
