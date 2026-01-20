@@ -1,7 +1,8 @@
 import ffmpeg from 'fluent-ffmpeg'
 
-export async function createSceneVideo ({ imagePath, audioPath, duration, outputPath }: {imagePath: string, audioPath: string, duration: number, outputPath: string }) {
-  const RESOLUTION = '1344x768'
+export async function createSceneVideo ({ imagePath, audioPath, duration, outputPath, isShort }: {imagePath: string, audioPath: string, duration: number, outputPath: string, isShort: boolean }) {
+  // const RESOLUTION = '1344x768'
+  const RESOLUTION = isShort ? '1080x1920' : '1920x1080'
   const FPS = 60
 
   return new Promise((resolve, reject) => {

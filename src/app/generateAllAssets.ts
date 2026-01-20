@@ -27,7 +27,7 @@ interface AssetResult {
  * Itera sobre el guion y asegura que existan el audio, la imagen y el clip de video
  * para cada escena. Si algo falta, lo crea.
  */
-export async function generateAllAssets ({ storyboardData, dirs }: {storyboardData: Scene[], dirs: Dirs}): Promise<AssetResult> {
+export async function generateAllAssets ({ storyboardData, dirs, isShort }: {storyboardData: Scene[], dirs: Dirs, isShort: boolean}): Promise<AssetResult> {
   const clipsPaths: string[] = []
   const videoDurations: number[] = []
 
@@ -38,9 +38,9 @@ export async function generateAllAssets ({ storyboardData, dirs }: {storyboardDa
     console.log(`\n🎬 Procesando Escena ${scene.id}: "${scene.text.substring(0, 30)}..."`)
 
     // Definimos las rutas esperadas para esta escena
-    const audioPath = path.join(dirs.audio, `scene_${scene.id}.mp3`)
-    const imagePath = path.join(dirs.images, `scene_${scene.id}.png`)
-    const videoClipPath = path.join(dirs.temp, `scene_${scene.id}.mp4`)
+    const audioPath = path.join(isShort ? dirs.shortAudio : dirs.audio, `scene_${scene.id}.mp3`)
+    const imagePath = path.join(isShort ? dirs.shortImages : dirs.images, `scene_${scene.id}.png`)
+    const videoClipPath = path.join(isShort ? dirs.shortTemp : dirs.temp, `scene_${scene.id}.mp4`)
 
     // A. GENERAR AUDIO (Solo si no existe ya)
     if (!fs.existsSync(audioPath)) {
@@ -60,7 +60,7 @@ export async function generateAllAssets ({ storyboardData, dirs }: {storyboardDa
         await imageGenerator({
           rawPrompt: scene.imagePrompt,
           outputPath: imagePath,
-          options: { aspectRatio: '16:9', model: 'gemini-2.5-flash-image' }
+          options: { aspectRatio: isShort ? '9:16' : '16:9', model: 'gemini-2.5-flash-image' }
         })
 
         console.log('   zzz Enfriando API (Wait 5s)...')
@@ -87,7 +87,8 @@ export async function generateAllAssets ({ storyboardData, dirs }: {storyboardDa
             imagePath,
             audioPath,
             duration: totalDuration,
-            outputPath: videoClipPath
+            outputPath: videoClipPath,
+            isShort
           })
         } else {
           console.log('   ✅ Clip de video ya existe, usándolo.')

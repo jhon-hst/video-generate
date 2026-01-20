@@ -73,7 +73,7 @@ const STYLE_REF_PATH = '../data/style_reference.png'
 
 interface ImageGenOptions {
   model?: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
-  aspectRatio?: '16:9'
+  aspectRatio?: '16:9' | '9:16'
 }
 interface imageGenerator {
   options?: ImageGenOptions,

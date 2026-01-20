@@ -1,57 +1,67 @@
 [
   {
     "id": 1,
-    "text": "100.000 años de dioses resumidos en menos de un minuto. ¿Listos? ¡YA!",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Extreme close up of stick figure in BRIGHT CYAN BLUE hoodie holding a stopwatch, sweating nervously, eyes wide open, intense expression. Background is a blur of motion. Big bold text in Spanish in the center: 'SPEEDRUN DIVINO'."
+    "text": "Todo lo que te enseñaron en la escuela es mentira.",
+    "imagePrompt": "digital vector illustration. The Cyan Hoodie character is punching a blackboard that says 'HISTORIA'. The blackboard shatters into pieces. Background is an alarm-red color for high impact. High contrast."
   },
   {
     "id": 2,
-    "text": "Nivel 1: La Cueva. No entiendes nada. Un rayo cae y piensas: 'El cielo me odia'.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure caveman looking terrified at a lightning bolt hitting the ground. A thought bubble coming from his head shows an angry cloud face. Text in Spanish stamped on image: 'NIVEL 1: MIEDO'."
+    "text": "La civilización humana no nació porque teníamos hambre...",
+    "imagePrompt": "digital vector illustration. A bored caveman looking at a dry piece of bread with a sad face. Grey, dull background."
   },
   {
     "id": 3,
-    "text": "Así nace el Animismo. Todo tiene espíritu para que no te mate un rayo.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure bowing down respectfully to a large tree and a rock that have glowing ghostly faces, looking up at the sky nervously. Text in Spanish floating: 'TODO TIENE ALMA'."
+    "text": "...nació porque queríamos estar borrachos.",
+    "imagePrompt": "digital vector illustration. Sudden transition. The same caveman is now wearing neon sunglasses, holding a frothy beer mug, and dancing under a disco ball. Vibrant party colors."
   },
   {
     "id": 4,
-    "text": "Nivel 2: Las Ciudades. Necesitas especialistas. Un dios para la lluvia, otro para la guerra...",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. A shelf displaying stick figure action figures of Zeus, Ra, and Thor in blister packs. Text in Spanish on the shelf: 'COLECCIÓNALOS TODOS'."
+    "text": "Existe una teoría científica real que confirma que los humanos no inventamos la agricultura para comer pan,",
+    "imagePrompt": "digital vector illustration. A scientist character points to a chart. The chart shows a loaf of bread with a red 'X' over it. The Cyan Hoodie character nods in agreement."
   },
   {
     "id": 5,
-    "text": "...¡y hasta una diosa romana para el alcantarillado! (Es real, googléalo). A esto se le llama politeísmo",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure in blue hoodie pointing at a smartphone screen showing a search result of a Goddess in a sewer. He looks at the camera like 'Really?'. Text in Spanish arrow pointing to phone: 'ES REAL'."
+    "text": "¡sino para tener cerveza constante!",
+    "imagePrompt": "digital vector illustration. The character is hugging a giant, glowing golden barrel of beer with hearts floating around his head. Pure love expression."
   },
   {
     "id": 6,
-    "text": "Nivel 3: El Monoteísmo. Abraham llega y dice: 'Basta de desorden. Borren a todos, solo existe EL JEFE'.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure Abraham slamming a giant red button labeled 'DELETE ALL'. In the background, the shelves of gods are collapsing. Text in Spanish: 'SOLO UN JEFE'."
+    "text": "Piénsalo: Dejamos de ser nómadas y construimos las primeras ciudades solo para proteger nuestros cultivos de alcohol.",
+    "imagePrompt": "digital vector illustration. Fast construction scene. Stick figures are rapidly building a fortress wall around a field of golden grain/beer bottles. The Cyan Hoodie character stands guard with a spear."
   },
   {
     "id": 7,
-    "text": "Pero hubo un bug en el sistema: Mi Dios Único es mejor que tu Dios Único. Resultado: 1000 años de guerras.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Two stick figure armies running at each other. On the left they hold a flag 'MI DIOS', on the right a flag 'TU DIOS'. In the middle, a chaotic dust cloud. Text in Spanish: 'ERROR DEL SISTEMA'."
+    "text": "¿Y las Pirámides de Egipto? No las hicieron esclavos,",
+    "imagePrompt": "digital vector illustration. The Great Pyramids. The Cyan Hoodie character holds a stamp and slams 'FALSO' onto a picture of slaves."
   },
   {
     "id": 8,
-    "text": "Nivel 4: La Ciencia. Darwin y Einstein entran al chat. Parecía Game Over para la religión.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure Scientist dropping a microphone (mic drop). Behind him, a tombstone that says 'R.I.P. MITOS'. Text in Spanish: '¿GAME OVER?'."
+    "text": "las hicieron obreros a los que les pagaban con cuatro litros de cerveza al día.",
+    "imagePrompt": "digital vector illustration. An Egyptian worker is receiving his salary: 4 massive jugs of beer. He looks incredibly happy and strong."
   },
   {
     "id": 9,
-    "text": "Pero... ¿Que creen? En pleno siglo 21, la religión no murió. Evolucionó.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure in blue hoodie wearing VR goggles, meditating in lotus position, floating in a cyberpunk city. Neon glowing halo. Text in Spanish: 'PLOT TWIST'."
+    "text": "De hecho, durante la Edad Media el agua estaba tan sucia que te mataba.",
+    "imagePrompt": "digital vector illustration. A glass of green, slimey water with a skull face in it. The Grim Reaper is standing behind it."
   },
   {
     "id": 10,
-    "text": "Hoy creemos en cosas mucho más extrañas que antes. ¿Quieres saber como paso todo?",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure peering through a keyhole into a blindingly bright light, looking shocked and amazed. Mystery vibe. Text in Spanish: 'MIRA ESTO'."
+    "text": "La gente solo bebía alcohol para sobrevivir.",
+    "imagePrompt": "digital vector illustration. A medieval peasant drinks from a mug and a golden energy shield protects him from green virus germs."
   },
   {
     "id": 11,
-    "text": "La historia de las religiones completa es una locura y está en mi canal.",
-    "imagePrompt": "vertical 9:16, High-quality digital vector illustration, exact YouTube explainer cartoon style. Stick figure running towards the camera lens, pointing down to the subscribe/link area. Background has a 'Play' button symbol. Text in Spanish: 'VIDEO COMPLETO AQUÍ'."
+    "text": "Así que si estás vivo hoy, es porque tus ancestros tenían un hígado de acero.",
+    "imagePrompt": "digital vector illustration. The Cyan Hoodie character holds up a glowing, metallic silver liver (Iron Man style). He looks proud."
+  },
+  {
+    "id": 12,
+    "text": "¿Quieres saber cómo la fiesta creó las matemáticas y salvó a la humanidad?",
+    "imagePrompt": "digital vector illustration. Collage of chaos: Mathematical formulas, DNA strands, and beer mugs swirling together around the character's confused but excited face."
+  },
+  {
+    "id": 13,
+    "text": "Tienes que ver la historia completa en mi canal.",
+    "imagePrompt": "digital vector illustration. The character points frantically downwards (where the related video link appears in Shorts) with big arrows flashing. Text: 'VER VIDEO COMPLETO'."
   }
 ]
